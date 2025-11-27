@@ -45,7 +45,6 @@ class DrugMANDataset:
         # print(all_bind_temp)
         # print(all_binds.equals(all_bind_temp))
 
-        # input()
         drug_emb, target_emb = self.load_embed()
 
         train_drug_emb = drug_emb.loc[train['pubchem_cid'], ]

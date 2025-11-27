@@ -35,23 +35,15 @@ class DrugMAN(nn.Sequential):
 
         self.predictor = nn.ModuleList([nn.Linear(dims[i], dims[i + 1]) for i in range(layer_size)])
 
-        if custom:
-            # self.Wpr = nn.Sequential(
-            #     nn.Linear(15599, 8000),
-            #     nn.ReLU(),
-            #     nn.Linear(8000, 2048),
-            #     nn.ReLU(),
-            #     nn.Linear(2048, 768),
-            #     nn.ReLU()
-            # )
-            self.Wpr = nn.Sequential(
-                nn.Linear(15599, 768),
-                nn.ReLU(),
-            )
+        # if custom:
+        #     self.Wpr = nn.Sequential(
+        #         nn.Linear(15599, 768),
+        #         nn.ReLU(),
+        #     )
 
     def forward(self, v_d, v_p):
-        if self.custom:
-            v_p = self.Wpr(v_p)
+        # if self.custom:
+        #     v_p = self.Wpr(v_p)
         v_dp = torch.stack([v_d, v_p], axis=1)
         bs = v_dp.shape[0]
         v_f = self.encoder(v_dp)    # [bcs, 2,512]
