@@ -25,25 +25,27 @@ class DrugMANDataset:
 
         return drug_emb, target_emb
 
+    def check(self, a, b):
+        print(np.isin(a, b).any())
+
+    def check_cold(self, train, val, test):
+        train_drug = train['pubchem_cid'].to_numpy()
+        train_target = train['gene_id'].to_numpy()
+
+        val_drug = val['pubchem_cid'].to_numpy()
+        val_target = val['gene_id'].to_numpy()
+
+        test_drug = test['pubchem_cid'].to_numpy()
+        test_target = test['gene_id'].to_numpy()
+
+        self.check(train_drug, val_drug)
+        self.check(train_drug, test_drug)
+
+        self.check(train_target, val_target)
+        self.check(train_target, test_target)
+
     def get_dataloader(self):
-        # all_binds = pd.read_csv(self.all_binds)
-        # all_binds = all_binds[["pubchem_cid", "gene_id"]]
-
         train, val, test = self.load_data()
-        # train = train[train["label"] == 1]
-        # val = val[val["label"] == 1]
-        # test = test[test["label"] == 1]
-
-        # all_bind_temp = pd.concat([train, val, test], axis=0)
-        # all_bind_temp = all_bind_temp[["pubchem_cid", "gene_id"]]
-
-
-        # all_binds = all_binds.sort_values(by=all_binds.columns.tolist()).reset_index(drop=True)
-        # all_bind_temp= all_bind_temp.sort_values(by=all_bind_temp.columns.tolist()).reset_index(drop=True)
-
-        # print(all_binds)
-        # print(all_bind_temp)
-        # print(all_binds.equals(all_bind_temp))
 
         drug_emb, target_emb = self.load_embed()
 
