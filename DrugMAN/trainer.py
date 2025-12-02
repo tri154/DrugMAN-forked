@@ -137,7 +137,7 @@ class Trainer:
             y_pred, y_label = [], []
             with torch.no_grad():
                 self.model.eval()
-                for step, (v_d, v_p, batch_label) in enumerate(self.val_generator):
+                for step, (v_d, v_p, batch_label, batch_indices) in enumerate(self.val_generator):
                     v_d, v_p, batch_label = v_d.to(self.device), v_p.to(self.device), batch_label.to(self.device)
                     v_d = v_d.to(self.device)
                     v_p = v_p.to(self.device)
@@ -152,7 +152,7 @@ class Trainer:
             val_ave_loss = val_losses / len(self.val_generator)
 
         elif dataloader == "test":
-            for step, (v_d, v_p, batch_label) in enumerate(self.test_generator):
+            for step, (v_d, v_p, batch_label, batch_indices) in enumerate(self.test_generator):
                 v_d, v_p, batch_label = v_d.to(self.device), v_p.to(self.device), batch_label.to(self.device)
                 v_d = v_d.to(self.device)
                 v_p = v_p.to(self.device)
