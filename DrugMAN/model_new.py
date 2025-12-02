@@ -18,5 +18,4 @@ class DrugMAN(nn.Sequential):
         self.bilinear = nn.Bilinear(self.input_dim_drug, self.input_dim_protein, 1)
 
     def forward(self, v_d, v_p):
-        print("use ")
         return self.bilinear(v_d, v_p)
