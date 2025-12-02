@@ -4,8 +4,7 @@ import torch.nn.functional as F
 from DrugMAN.encoder import Encoder
 
 
-# class DrugMAN(nn.Sequential):
-class DrugMAN_old(nn.Sequential):
+class DrugMAN(nn.Sequential):
     def __init__(self, custom=False):
         super().__init__()
         # mlp 参数

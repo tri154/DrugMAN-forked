@@ -8,9 +8,8 @@ from math import cos, pi
 import numpy as np
 
 from sklearn.metrics import roc_curve, precision_recall_curve, auc
-# from DrugMAN.model import DrugMAN
-from DrugMAN.model_new import DrugMAN
-
+from DrugMAN.model import DrugMAN
+from torch.nn.utils import clip_grad_norm_
 
 class Trainer:
     def __init__(self, test_bcs, train_generator, val_generator, test_generator, device, custom=False):
@@ -18,6 +17,7 @@ class Trainer:
         self.epochs = 400
         self.batch_size = 512
         self.test_bcs = test_bcs
+        self.max_grad_norm = 1.0
 
         self.device = device
 
@@ -44,7 +44,7 @@ class Trainer:
 
     def train(self):
         self.model = DrugMAN(self.custom).to(self.device)
-        optimizer = optim.Adam(self.model.parameters(), lr=3e-5, weight_decay=0.02)  # 这里调整参数，来训练模型
+        optimizer = optim.AdamW(self.model.parameters(), lr=3e-5, weight_decay=0.02)  # 这里调整参数，来训练模型
         best_val_auroc = 0
         train_list = []
         val_list = []
@@ -71,6 +71,7 @@ class Trainer:
                 batch_loss = self.BCE_loss(y_pred, batch_label)
                 loss_sum += batch_loss.item()
                 batch_loss.backward()
+                clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
                 optimizer.step()
 
             epoch_loss = loss_sum/len(self.train_generator)
