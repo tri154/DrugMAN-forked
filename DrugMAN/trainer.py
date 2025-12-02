@@ -12,7 +12,7 @@ from DrugMAN.model import DrugMAN
 from torch.nn.utils import clip_grad_norm_
 
 class Trainer:
-    def __init__(self, test_bcs, train_generator, val_generator, test_generator, device, custom=False):
+    def __init__(self, test_bcs, train_generator, val_generator, test_generator, device):
 
         self.epochs = 400
         self.batch_size = 512
@@ -24,7 +24,6 @@ class Trainer:
         self.train_generator = train_generator
         self.val_generator = val_generator
         self.test_generator = test_generator
-        self.custom = custom
 
 
     def BCE_loss(self, input, target):
@@ -43,7 +42,7 @@ class Trainer:
             param_group['lr'] = lr
 
     def train(self):
-        self.model = DrugMAN(self.custom).to(self.device)
+        self.model = DrugMAN().to(self.device)
         optimizer = optim.AdamW(self.model.parameters(), lr=3e-5, weight_decay=0.02)  # 这里调整参数，来训练模型
         best_val_auroc = 0
         train_list = []

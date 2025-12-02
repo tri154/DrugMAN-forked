@@ -11,20 +11,20 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def main():
-    # load data and get dataloader
     dataFolder = 'data/warm_start'
     # dataFolder = 'data/cold_start'
+
+    embFolder = 'combined'
     # embFolder = 'data/bionic_embed'
-    embFolder = 'data/seq_embed'
+    # embFolder = 'data/seq_embed'
+
     dataset = DrugMANDataset(dataFolder, embFolder)
     df_train, df_val, df_test = dataset.load_data()
     train_dataloader, val_dataloader, test_dataloader, test_bcs = dataset.get_dataloader()
 
     # start train
 
-    custom = embFolder=='data/seq_embed'
-    # custom = False
-    drugman_trainer = Trainer(test_bcs, train_dataloader, val_dataloader, test_dataloader, device, custom=custom)
+    drugman_trainer = Trainer(test_bcs, train_dataloader, val_dataloader, test_dataloader, device)
     train_list, val_list, test_list, test_pred, best_model = drugman_trainer.train()
 
     # result

@@ -19,15 +19,6 @@ class DrugMANDataset:
 
         return train, val, test
 
-    def load_embed(self):
-        drug_emb = pd.read_csv(self.file_emb + "/drug_features.tsv", index_col=0, delimiter="\t")
-        target_emb = pd.read_csv(self.file_emb + "/target_features.tsv", index_col=0, delimiter="\t")
-
-        return drug_emb, target_emb
-
-    def check(self, a, b):
-        print(np.isin(a, b).any())
-
     def check_cold(self, train, val, test):
         print(len(train))
         print(len(val))
@@ -52,40 +43,90 @@ class DrugMANDataset:
         breakpoint()
         input()
 
+    def check(self, a, b):
+        print(np.isin(a, b).any())
+
+    def load_embed(self):
+        if self.file_emb == 'combined':
+            bionic = 'data/bionic_embed'
+            drug_emb_bionic = pd.read_csv(bionic + "/drug_features.tsv", index_col=0, delimiter="\t")
+            target_emb_bionic = pd.read_csv(bionic + "/target_features.tsv", index_col=0, delimiter="\t")
+
+            seq = 'data/seq_embed'
+            drug_emb_seq = pd.read_csv(seq + "/drug_features.tsv", index_col=0, delimiter="\t")
+            target_emb_seq = pd.read_csv(seq + "/target_features.tsv", index_col=0, delimiter="\t")
+            # seq_embed number of unique target/drug is smaller than bionic,
+            # but still cover train, val, test.
+
+            return drug_emb_bionic, target_emb_bionic, drug_emb_seq, target_emb_seq
+        else:
+            drug_emb = pd.read_csv(self.file_emb + "/drug_features.tsv", index_col=0, delimiter="\t")
+            target_emb = pd.read_csv(self.file_emb + "/target_features.tsv", index_col=0, delimiter="\t")
+
+            return drug_emb, target_emb
+
+
+    def combined_process(self, dataset, drug_bionic, target_bionic, drug_seq, target_seq):
+        drug_bionic_emb = drug_bionic.loc[dataset['pubchem_cid'], ]
+        drug_seq_emb = drug_seq.loc[dataset['pubchem_cid'], ]
+
+        target_bionic_emb = target_bionic.loc[dataset['gene_id'], ]
+        target_seq_emb = target_seq.loc[dataset['gene_id'], ]
+
+        scaler = StandardScaler()
+        drug_bionic_emb = scaler.fit_transform(np.array(drug_bionic_emb))
+        drug_seq_emb = scaler.fit_transform(np.array(drug_seq_emb))
+        target_bionic_emb = scaler.fit_transform(np.array(target_bionic_emb))
+        target_seq_emb = scaler.fit_transform(np.array(target_seq_emb))
+
+        drug_emb = np.concatenate((drug_bionic_emb, drug_seq_emb), axis=-1)
+        target_emb = np.concatenate((target_bionic_emb, target_seq_emb), axis=-1)
+
+        drug_emb = torch.FloatTensor(drug_emb)
+        target_emb = torch.FloatTensor(target_emb)
+        label = torch.FloatTensor(np.array(dataset['label']))
+
+        return drug_emb, target_emb, label
+
     def get_dataloader(self):
         train, val, test = self.load_data()
         # self.check_cold(train, val, test)
 
-        drug_emb, target_emb = self.load_embed()
+        if self.file_emb == 'combined':
+            drug_bionic, target_bionic, drug_seq, target_seq = self.load_embed()
+            train_drug_emb, train_target_emb, train_label = self.combined_process(train, drug_bionic, target_bionic, drug_seq, target_seq)
+            val_drug_emb, val_target_emb, val_label = self.combined_process(val, drug_bionic, target_bionic, drug_seq, target_seq)
+            test_drug_emb, test_target_emb, test_label = self.combined_process(test, drug_bionic, target_bionic, drug_seq, target_seq)
+        else:
+            drug_emb, target_emb = self.load_embed()
 
-        train_drug_emb = drug_emb.loc[train['pubchem_cid'], ]
-        train_target_emb = target_emb.loc[train['gene_id'], ]
+            train_drug_emb = drug_emb.loc[train['pubchem_cid'], ]
+            train_target_emb = target_emb.loc[train['gene_id'], ]
 
-        val_drug_emb = drug_emb.loc[val["pubchem_cid"], ]
-        val_target_emb = target_emb.loc[val['gene_id'], ]
+            val_drug_emb = drug_emb.loc[val["pubchem_cid"], ]
+            val_target_emb = target_emb.loc[val['gene_id'], ]
 
-        test_drug_emb = drug_emb.loc[test["pubchem_cid"], ]
-        test_target_emb = target_emb.loc[test['gene_id'], ]
+            test_drug_emb = drug_emb.loc[test["pubchem_cid"], ]
+            test_target_emb = target_emb.loc[test['gene_id'], ]
 
-        # normalized by z-score and convert to tensor type
-        scaler = StandardScaler()
-        train_drug_emb = scaler.fit_transform(np.array(train_drug_emb))
-        train_target_emb = scaler.fit_transform(np.array(train_target_emb))
-        train_drug_emb = torch.FloatTensor(train_drug_emb)
-        train_target_emb = torch.FloatTensor(train_target_emb)
-        train_label = torch.FloatTensor(np.array(train['label']))
+            scaler = StandardScaler()
+            train_drug_emb = scaler.fit_transform(np.array(train_drug_emb))
+            train_target_emb = scaler.fit_transform(np.array(train_target_emb))
+            train_drug_emb = torch.FloatTensor(train_drug_emb)
+            train_target_emb = torch.FloatTensor(train_target_emb)
+            train_label = torch.FloatTensor(np.array(train['label']))
 
-        val_drug_emb = scaler.fit_transform(np.array(val_drug_emb))
-        val_target_emb = scaler.fit_transform(np.array(val_target_emb))
-        val_drug_emb = torch.FloatTensor(val_drug_emb)
-        val_target_emb = torch.FloatTensor(val_target_emb)
-        val_label = torch.FloatTensor(np.array(val['label']))
+            val_drug_emb = scaler.fit_transform(np.array(val_drug_emb))
+            val_target_emb = scaler.fit_transform(np.array(val_target_emb))
+            val_drug_emb = torch.FloatTensor(val_drug_emb)
+            val_target_emb = torch.FloatTensor(val_target_emb)
+            val_label = torch.FloatTensor(np.array(val['label']))
 
-        test_drug_emb = scaler.fit_transform(np.array(test_drug_emb))
-        test_target_emb = scaler.fit_transform(np.array(test_target_emb))
-        test_drug_emb = torch.FloatTensor(test_drug_emb)
-        test_target_emb = torch.FloatTensor(test_target_emb)
-        test_label = torch.FloatTensor(np.array(test['label']))
+            test_drug_emb = scaler.fit_transform(np.array(test_drug_emb))
+            test_target_emb = scaler.fit_transform(np.array(test_target_emb))
+            test_drug_emb = torch.FloatTensor(test_drug_emb)
+            test_target_emb = torch.FloatTensor(test_target_emb)
+            test_label = torch.FloatTensor(np.array(test['label']))
 
         # create dataloader
         train_dataset = Data.TensorDataset(train_drug_emb, train_target_emb, train_label)
