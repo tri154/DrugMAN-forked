@@ -29,6 +29,9 @@ class DrugMANDataset:
         print(np.isin(a, b).any())
 
     def check_cold(self, train, val, test):
+        print(len(train))
+        print(len(val))
+        print(len(test))
         train_drug = train['pubchem_cid'].to_numpy()
         train_target = train['gene_id'].to_numpy()
 
@@ -43,9 +46,15 @@ class DrugMANDataset:
 
         self.check(train_target, val_target)
         self.check(train_target, test_target)
+        print(np.sum(train['label'].to_numpy()))
+        print(np.sum(val['label'].to_numpy()))
+        print(np.sum(test['label'].to_numpy()))
+        breakpoint()
+        input()
 
     def get_dataloader(self):
         train, val, test = self.load_data()
+        # self.check_cold(train, val, test)
 
         drug_emb, target_emb = self.load_embed()
 

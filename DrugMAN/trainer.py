@@ -8,7 +8,8 @@ from math import cos, pi
 import numpy as np
 
 from sklearn.metrics import roc_curve, precision_recall_curve, auc
-from DrugMAN.model import DrugMAN
+# from DrugMAN.model import DrugMAN
+from DrugMAN.model_new import DrugMAN
 
 
 class Trainer:
@@ -63,6 +64,7 @@ class Trainer:
                 y_pred = self.model(v_d, v_p)
 
                 # debug
+                # print(y_pred)
                 # breakpoint()
                 # debug
 
