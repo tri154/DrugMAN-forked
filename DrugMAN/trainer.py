@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.nn.functional as F
 
 import time
 import copy
@@ -42,10 +41,10 @@ class Trainer:
         current_tradeoff = self.loss_tradeoff * current_epoch / (self.epochs - 1.0)
 
         logits = logits[:, 0]
-        dist = F.sigmoid(logits / current_temp)
+        dist = torch.sigmoid(logits / current_temp)
         dist = torch.stack((dist, 1.0 - dist), dim=1)
 
-        teacher_dist = F.sigmoid(teacher_logits / current_temp)
+        teacher_dist = torch.sigmoid(teacher_logits / current_temp)
         teacher_dist = torch.stack((teacher_dist, 1.0 - teacher_dist), dim=1)
 
         loss = self.kd_loss(torch.log(dist), teacher_dist)
