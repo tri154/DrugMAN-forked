@@ -85,8 +85,9 @@ class DrugMANDataset:
         drug_emb = torch.FloatTensor(drug_emb)
         target_emb = torch.FloatTensor(target_emb)
         label = torch.FloatTensor(np.array(dataset['label']))
+        indices = torch.arange(drug_emb.shape[0])
 
-        return drug_emb, target_emb, label
+        return drug_emb, target_emb, label, indices
 
     def get_dataloader(self):
         train, val, test = self.load_data()
@@ -94,9 +95,9 @@ class DrugMANDataset:
 
         if self.file_emb == 'combined':
             drug_bionic, target_bionic, drug_seq, target_seq = self.load_embed()
-            train_drug_emb, train_target_emb, train_label = self.combined_process(train, drug_bionic, target_bionic, drug_seq, target_seq)
-            val_drug_emb, val_target_emb, val_label = self.combined_process(val, drug_bionic, target_bionic, drug_seq, target_seq)
-            test_drug_emb, test_target_emb, test_label = self.combined_process(test, drug_bionic, target_bionic, drug_seq, target_seq)
+            train_drug_emb, train_target_emb, train_label, train_indices = self.combined_process(train, drug_bionic, target_bionic, drug_seq, target_seq)
+            val_drug_emb, val_target_emb, val_label, val_indices = self.combined_process(val, drug_bionic, target_bionic, drug_seq, target_seq)
+            test_drug_emb, test_target_emb, test_label, test_indices = self.combined_process(test, drug_bionic, target_bionic, drug_seq, target_seq)
         else:
             drug_emb, target_emb = self.load_embed()
 
@@ -115,25 +116,28 @@ class DrugMANDataset:
             train_drug_emb = torch.FloatTensor(train_drug_emb)
             train_target_emb = torch.FloatTensor(train_target_emb)
             train_label = torch.FloatTensor(np.array(train['label']))
+            train_indices = torch.arange(train_label.shape[0])
 
             val_drug_emb = scaler.fit_transform(np.array(val_drug_emb))
             val_target_emb = scaler.fit_transform(np.array(val_target_emb))
             val_drug_emb = torch.FloatTensor(val_drug_emb)
             val_target_emb = torch.FloatTensor(val_target_emb)
             val_label = torch.FloatTensor(np.array(val['label']))
+            val_indices = torch.arange(val_label.shape[0])
 
             test_drug_emb = scaler.fit_transform(np.array(test_drug_emb))
             test_target_emb = scaler.fit_transform(np.array(test_target_emb))
             test_drug_emb = torch.FloatTensor(test_drug_emb)
             test_target_emb = torch.FloatTensor(test_target_emb)
             test_label = torch.FloatTensor(np.array(test['label']))
+            test_indices = torch.arange(test_label.shape[0])
 
         # create dataloader
-        train_dataset = Data.TensorDataset(train_drug_emb, train_target_emb, train_label)
-        val_dataset = Data.TensorDataset(val_drug_emb, val_target_emb, val_label)
-        test_dataset = Data.TensorDataset(test_drug_emb, test_target_emb, test_label)
+        train_dataset = Data.TensorDataset(train_drug_emb, train_target_emb, train_label, train_indices)
+        val_dataset = Data.TensorDataset(val_drug_emb, val_target_emb, val_label, val_indices)
+        test_dataset = Data.TensorDataset(test_drug_emb, test_target_emb, test_label, test_indices)
 
-        params = {'batch_size': 512, 'shuffle': True, 'num_workers': 0, 'drop_last': True}
+        params = {'batch_size': 512, 'shuffle': True, 'num_workers': 0, 'drop_last': False}
         if train_dataset or val_dataset:
             train_loader = Data.DataLoader(train_dataset, **params)
             val_loader = Data.DataLoader(val_dataset, **params)

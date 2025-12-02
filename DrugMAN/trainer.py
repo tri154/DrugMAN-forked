@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torch.nn.functional as F
 
 import time
 import copy
@@ -19,18 +20,37 @@ class Trainer:
         self.test_bcs = test_bcs
         self.max_grad_norm = 1.0
 
+        self.upper_temp = 20.0
+        self.lower_temp = 2.0
+        self.loss_tradeoff = 30.0
+
         self.device = device
 
         self.train_generator = train_generator
         self.val_generator = val_generator
         self.test_generator = test_generator
-
+        self.bce_loss = nn.BCELoss()
+        self.kd_loss = nn.KLDivLoss(reduction='batchmean')
 
     def BCE_loss(self, input, target):
-        BCE_loss = nn.BCELoss()
         m = nn.Sigmoid()
-        loss = BCE_loss(torch.squeeze(m(input)), target)
+        loss = self.bce_loss(torch.squeeze(m(input)), target)
         return loss
+
+    def KD_loss(self, logits, teacher_logits, current_epoch):
+        current_temp = self.upper_temp - (self.upper_temp - self.lower_temp) * current_epoch / (self.epochs- 1.0)
+        current_tradeoff = self.loss_tradeoff * current_epoch / (self.epochs - 1.0)
+
+        logits = logits[:, 0]
+        dist = F.sigmoid(logits / current_temp)
+        dist = torch.stack((dist, 1.0 - dist), dim=1)
+
+        teacher_dist = F.sigmoid(teacher_logits / current_temp)
+        teacher_dist = torch.stack((teacher_dist, 1.0 - teacher_dist), dim=1)
+
+        loss = self.kd_loss(torch.log(dist), teacher_dist)
+
+        return loss, current_tradeoff
 
     def adjust_lr(self, optimizer, current_epoch, max_epoch, lr_min, lr_max, warmup=True):
         warmup_epoch = 20 if warmup else 0
@@ -41,6 +61,7 @@ class Trainer:
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
 
+
     def train(self):
         self.model = DrugMAN().to(self.device)
         optimizer = optim.AdamW(self.model.parameters(), lr=3e-5, weight_decay=0.02)  # 这里调整参数，来训练模型
@@ -48,6 +69,8 @@ class Trainer:
         train_list = []
         val_list = []
         test_list = []
+
+        cached_logits = torch.zeros(len(self.train_generator.dataset))
         for epoch in range(self.epochs):
             time_start = time.time()
             self.model.train()
@@ -55,20 +78,31 @@ class Trainer:
             loss_sum = 0
             float2str = lambda x: '%0.6f' % x
             self.adjust_lr(optimizer, epoch, self.epochs, lr_min=0, lr_max=3e-5, warmup=True)
-            for step, (v_d, v_p, batch_label) in enumerate(self.train_generator):
+            for step, (v_d, v_p, batch_label, batch_indices) in enumerate(self.train_generator):
                 v_d, v_p, batch_label = v_d.to(self.device), v_p.to(self.device), batch_label.to(self.device)
                 v_d = v_d.to(self.device)
                 v_p = v_p.to(self.device)
                 optimizer.zero_grad()
                 y_pred = self.model(v_d, v_p)
 
+                kd_loss = 0.0
+                current_tradeoff = 1.0
+                if epoch != 0:
+                    teacher_logits = cached_logits[batch_indices]
+                    teacher_logits = teacher_logits.to(self.device)
+                    kd_loss, current_tradeoff = self.KD_loss(y_pred, teacher_logits, epoch)
+
+                batch_loss = self.BCE_loss(y_pred, batch_label)
+                batch_loss += kd_loss * current_tradeoff
+                loss_sum += batch_loss.item()
+
+                cached_logits[batch_indices] = y_pred.detach().cpu().squeeze(dim=1)
+
                 # debug
-                # print(y_pred)
+                # print(batch_loss)
                 # breakpoint()
                 # debug
 
-                batch_loss = self.BCE_loss(y_pred, batch_label)
-                loss_sum += batch_loss.item()
                 batch_loss.backward()
                 clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
                 optimizer.step()
