@@ -71,7 +71,7 @@ class Trainer:
                 batch_loss = self.BCE_loss(y_pred, batch_label)
                 loss_sum += batch_loss.item()
                 batch_loss.backward()
-                clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+                # clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
                 optimizer.step()
 
             epoch_loss = loss_sum/len(self.train_generator)
