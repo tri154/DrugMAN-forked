@@ -38,7 +38,7 @@ class Trainer:
 
     def KD_loss(self, logits, teacher_logits, current_epoch):
         current_temp = self.upper_temp - (self.upper_temp - self.lower_temp) * current_epoch / (self.epochs - 1.0)
-        current_tradeoff = self.loss_tradeoff * current_epoch / (self.epochs - 1.0)
+        current_tradeoff = self.loss_tradeoff * (self.epochs - 1.0 - current_epoch) / (self.epochs - 1.0)
 
         logits = logits[:, 0]
         dist = torch.sigmoid(logits / current_temp)
