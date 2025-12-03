@@ -105,11 +105,13 @@ class Trainer:
             y_pred, y_label = [], []
             with torch.no_grad():
                 self.model.eval()
-                for step, (v_d, v_p, batch_label) in enumerate(self.val_generator):
-                    v_d, v_p, batch_label = v_d.to(self.device), v_p.to(self.device), batch_label.to(self.device)
-                    v_d = v_d.to(self.device)
-                    v_p = v_p.to(self.device)
-                    val_pred = self.model(v_d, v_p)
+                for step,  (v_d1, v_d2, v_p1, v_p2, batch_label) in enumerate(self.val_generator):
+                    v_d1 = v_d1.to(self.device)
+                    v_d2 = v_d2.to(self.device)
+                    v_p1 = v_p1.to(self.device)
+                    v_p2 = v_p2.to(self.device)
+                    batch_label = batch_label.to(self.device)
+                    val_pred = self.model(v_d1, v_d2, v_p1, v_p2)
                     val_loss = self.BCE_loss(val_pred, batch_label)
                     val_losses += val_loss.item()
                     m = nn.Sigmoid()
@@ -120,11 +122,13 @@ class Trainer:
             val_ave_loss = val_losses / len(self.val_generator)
 
         elif dataloader == "test":
-            for step, (v_d, v_p, batch_label) in enumerate(self.test_generator):
-                v_d, v_p, batch_label = v_d.to(self.device), v_p.to(self.device), batch_label.to(self.device)
-                v_d = v_d.to(self.device)
-                v_p = v_p.to(self.device)
-                test_pred = self.best_model(v_d, v_p)
+            for step,  (v_d1, v_d2, v_p1, v_p2, batch_label) in enumerate(self.test_generator):
+                v_d1 = v_d1.to(self.device)
+                v_d2 = v_d2.to(self.device)
+                v_p1 = v_p1.to(self.device)
+                v_p2 = v_p2.to(self.device)
+                batch_label = batch_label.to(self.device)
+                test_pred = self.best_model(v_d1, v_d2, v_p1, v_p2)
                 test_loss = self.BCE_loss(test_pred, batch_label)
                 test_loss = test_loss.item()
                 m = nn.Sigmoid()
