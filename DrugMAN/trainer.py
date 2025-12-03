@@ -55,12 +55,14 @@ class Trainer:
             loss_sum = 0
             float2str = lambda x: '%0.6f' % x
             self.adjust_lr(optimizer, epoch, self.epochs, lr_min=0, lr_max=3e-5, warmup=True)
-            for step, (v_d, v_p, batch_label) in enumerate(self.train_generator):
-                v_d, v_p, batch_label = v_d.to(self.device), v_p.to(self.device), batch_label.to(self.device)
-                v_d = v_d.to(self.device)
-                v_p = v_p.to(self.device)
+            for step, (v_d1, v_d2, v_p1, v_p2, batch_label) in enumerate(self.train_generator):
+                v_d1 = v_d1.to(self.device)
+                v_d2 = v_d2.to(self.device)
+                v_p1 = v_p1.to(self.device)
+                v_p2 = v_p2.to(self.device)
+                batch_label = batch_label.to(self.device)
                 optimizer.zero_grad()
-                y_pred = self.model(v_d, v_p)
+                y_pred = self.model(v_d1, v_d2, v_p1, v_p2)
 
                 # debug
                 # print(y_pred)
