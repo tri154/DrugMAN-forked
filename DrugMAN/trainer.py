@@ -37,15 +37,15 @@ class Trainer:
         return loss
 
     def KD_loss(self, logits, teacher_logits, current_epoch):
-        current_temp = self.upper_temp - (self.upper_temp - self.lower_temp) * current_epoch / (self.epochs- 1.0)
+        current_temp = self.upper_temp - (self.upper_temp - self.lower_temp) * current_epoch / (self.epochs - 1.0)
         current_tradeoff = self.loss_tradeoff * current_epoch / (self.epochs - 1.0)
 
         logits = logits[:, 0]
         dist = torch.sigmoid(logits / current_temp)
-        dist = torch.stack((dist, 1.0 - dist), dim=1)
+        # dist = torch.stack((dist, 1.0 - dist), dim=1)
 
         teacher_dist = torch.sigmoid(teacher_logits / current_temp)
-        teacher_dist = torch.stack((teacher_dist, 1.0 - teacher_dist), dim=1)
+        # teacher_dist = torch.stack((teacher_dist, 1.0 - teacher_dist), dim=1)
 
         loss = self.kd_loss(torch.log(dist), teacher_dist)
 
