@@ -19,13 +19,14 @@ class DrugMAN(nn.Sequential):
         self.enc_hid_dim = 256
         self.enc_n_layers = 5
         self.enc_dropout = 0.3
+        self.n_tokens = 4
 
         self.hidden_dims = [512 * 2, 512, 256, 256]
         layer_size = len(self.hidden_dims) + 1
         dims = [self.input_dim_drug * 2 + self.input_dim_protein * 2] + self.hidden_dims + [1]
 
         self.encoder = Encoder(self.enc_n_layers, self.enc_input_dim, self.enc_output_dim,
-                               self.enc_hid_dim, self.enc_n_heads, self.enc_dropout, self.device)
+                               self.enc_hid_dim, self.enc_n_heads, self.enc_dropout, self.n_tokens, self.device)
 
         self.predictor = nn.ModuleList([nn.Linear(dims[i], dims[i + 1]) for i in range(layer_size)])
         self.vd2_linear = nn.Linear(768, 512)
