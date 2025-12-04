@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
+import math
 
 class MultiHeadAttention_old(nn.Module):
     #old
@@ -67,11 +68,26 @@ class MultiHeadAttention(nn.Module):
         assert output_dim % n_heads == 0
         self.d_head = output_dim // n_heads
 
-        # Per-token weight matrices
-        # Shape: [N, input_dim, output_dim]
-        self.Wq = nn.Parameter(torch.randn(self.N, input_dim, output_dim))
-        self.Wk = nn.Parameter(torch.randn(self.N, input_dim, output_dim))
-        self.Wv = nn.Parameter(torch.randn(self.N, input_dim, output_dim))
+        # self.Wq = nn.Parameter(torch.randn(self.N, input_dim, output_dim))
+        # self.Wk = nn.Parameter(torch.randn(self.N, input_dim, output_dim))
+        # self.Wv = nn.Parameter(torch.randn(self.N, input_dim, output_dim))
+
+        self.Wq = nn.Parameter(torch.empty(self.N, input_dim, output_dim))
+        self.Wk = nn.Parameter(torch.empty(self.N, input_dim, output_dim))
+        self.Wv = nn.Parameter(torch.empty(self.N, input_dim, output_dim))
+
+        self.bq = nn.Parameter(torch.empty(self.N, output_dim))
+        self.bk = nn.Parameter(torch.empty(self.N, output_dim))
+        self.bv = nn.Parameter(torch.empty(self.N, output_dim))
+
+        for W in [self.Wq, self.Wk, self.Wv]:
+            nn.init.kaiming_uniform_(W, a=math.sqrt(5))
+
+        fan_in = input_dim
+        bound = 1 / math.sqrt(fan_in)
+        for b in [self.bq, self.bk, self.bv]:
+            nn.init.uniform_(b, -bound, bound)
+
 
         self.fc = nn.Linear(output_dim, output_dim)
         self.do = nn.Dropout(dropout)
@@ -79,22 +95,17 @@ class MultiHeadAttention(nn.Module):
         self.scale = (self.d_head) ** 0.5
 
     def forward(self, query, key, value, mask=None):
-        # x: [B, N, input_dim]
         B = query.size(0)
         N = self.N
 
-        # compute Q,K,V per token
-        # einsum: (batch, token, in_dim) × (token, in_dim, out_dim)
-        Q = torch.einsum("bti,tio->bto", query, self.Wq)
-        K = torch.einsum("bti,tio->bto", key, self.Wk)
-        V = torch.einsum("bti,tio->bto", value, self.Wv)
+        Q = torch.einsum("bti,tio->bto", query, self.Wq) + self.bq
+        K = torch.einsum("bti,tio->bto", key, self.Wk) + self.bk
+        V = torch.einsum("bti,tio->bto", value, self.Wv) + self.bv
 
-        # reshape for multi-head
         Q = Q.view(B, N, self.n_heads, self.d_head).transpose(1, 2)
         K = K.view(B, N, self.n_heads, self.d_head).transpose(1, 2)
         V = V.view(B, N, self.n_heads, self.d_head).transpose(1, 2)
 
-        # attention scores
         scores = (Q @ K.transpose(-2, -1)) / self.scale
 
         if mask is not None:
@@ -103,16 +114,12 @@ class MultiHeadAttention(nn.Module):
         attn = torch.softmax(scores, dim=-1)
         attn = self.do(attn)
 
-        # weighted sum
         x_out = attn @ V
 
-        # merge heads
         x_out = x_out.transpose(1, 2).reshape(B, N, self.output_dim)
 
-        # output projection
         x_out = self.fc(x_out)
 
-        # add & norm
         x_out = self.layer_norm(x_out + query)
 
         return x_out
